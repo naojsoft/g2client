@@ -1,0 +1,150 @@
+#! /usr/bin/env python3
+#
+# datasink -- a program to receive data from Gen2
+#
+# eric@naoj.org
+#
+#
+from __future__ import print_function
+
+import sys, os
+import signal
+from optparse import OptionParser
+
+from g2base import ssdlog, myproc
+from g2client.datasink import main
+
+if __name__ == '__main__':
+
+    usage = "usage: %prog [options]"
+    optprs = OptionParser(usage=usage, version=('%prog'))
+    optprs.add_option("-a", "--app", dest="appstr", metavar="STRING",
+                      help="Specify STRING to exec on data receipt")
+    optprs.add_option("--debug", dest="debug", default=False,
+                      action="store_true",
+                      help="Enter the pdb debugger on main()")
+    optprs.add_option("-d", "--datadir", dest="datadir",
+                      metavar="DIR", default='.',
+                      help="Specify DIR to store FITS files")
+    optprs.add_option("--detach", dest="detach", default=False,
+                      action="store_true",
+                      help="Detach from terminal and run as a daemon")
+    optprs.add_option("-f", "--keyfile", dest="keyfile", metavar="NAME",
+                      help="Specify authorization key file NAME")
+    optprs.add_option("--filter", dest="filter", metavar="REGEX",
+                      help="Specify REGEX filter for files")
+    optprs.add_option('-g', "--gen2host", dest="host", metavar="NAME",
+                      default='localhost',
+                      help="Specify NAME for a Gen2 host")
+    optprs.add_option("--interval", dest="interval", type="int",
+                      default=60,
+                      help="Registration interval in SEC", metavar="SEC")
+    optprs.add_option("-k", "--key", dest="key", metavar="KEY",
+                      help="Specify authorization KEY")
+    optprs.add_option("--kill", dest="kill", default=False,
+                      action="store_true",
+                      help="Kill running instance of datasink")
+    optprs.add_option("--mountmangle", dest="mountmangle",
+                      help="Specify a file prefix transformation for NFS copies")
+    optprs.add_option("--md5check", dest="md5check", action="store_true",
+                      default=False,
+                      help="Check/calculate MD5 sums on files")
+    optprs.add_option("--pass", dest="passphrase",
+                      help="Specify authorization pass phrase")
+    optprs.add_option('-p', "--passfile", dest="passfile",
+                      help="Specify authorization pass phrase file")
+    optprs.add_option("--pidfile", dest="pidfile", metavar="FILE",
+                      help="Write process pid to FILE")
+    optprs.add_option("--port", dest="port", type="int", default=15003,
+                      help="Register using PORT", metavar="PORT")
+    optprs.add_option("--profile", dest="profile", action="store_true",
+                      default=False,
+                      help="Run the profiler on main()")
+    optprs.add_option("--pullhost", dest="pullhost", metavar="NAME",
+                      default='localhost',
+                      help="Specify NAME for a file transfer host")
+    optprs.add_option("--pullport", dest="pullport",
+                      help="Specify PORT for a file transfer port",
+                      metavar="PORT")
+    optprs.add_option("--pullmethod", dest="pullmethod",
+                      default='ftps',
+                      help="Use METHOD (ftp|ftps|sftp|http|https|scp|copy) for transferring FITS files")
+    optprs.add_option("--pullname", dest="pullname", metavar="USERNAME",
+                      default='anonymous',
+                      help="Login as USERNAME for ftp/ssh transfers")
+    optprs.add_option("--storeby", dest="storeby", metavar="NAME",
+                      help="Store by propid|inst")
+    optprs.add_option("--workers", dest="workers", metavar="NUM",
+                      type="int", default=4,
+                      help="Specify number of work threads")
+    optprs.add_option("--xferlog", dest="xferlog", metavar="FILE",
+                      default="/dev/null",
+                      help="Specify log file for transfers")
+    ssdlog.addlogopts(optprs)
+
+    (options, args) = optprs.parse_args(sys.argv[1:])
+
+    # Write out our pid
+    if options.pidfile:
+        pidfile = options.pidfile
+    else:
+        pidfile = ('/tmp/datasink_%d.pid' % (options.port))
+
+    if options.detach:
+        import myproc
+
+        print("Detaching from this process...")
+        sys.stdout.flush()
+        try:
+            try:
+                logfile = ('/tmp/datasink_%d.log' % (options.port))
+                child = myproc.myproc(main, args=[options, args],
+                                      pidfile=pidfile, detach=True,
+                                      stdout=logfile,
+                                      stderr=logfile)
+                child.wait()
+
+            except Exception as e:
+                print("Error detaching process: %s" % (str(e)))
+
+            # TODO: check status of process and report error if necessary
+        finally:
+            sys.exit(0)
+
+    if options.kill:
+        try:
+            try:
+                pid = None
+                with open(pidfile, 'r') as pid_f:
+                    pid = int(pid_f.read().strip())
+
+                print("Killing %d..." % (pid))
+                os.kill(pid, signal.SIGKILL)
+                print("Killed.")
+
+            except IOError as e:
+                print("Cannot read pid file (%s): %s" % (pidfile, str(e)))
+                sys.exit(1)
+
+            except OSError as e:
+                print("Error killing pid (%d): %s" % (pid, str(e)))
+                sys.exit(1)
+
+        finally:
+            sys.exit(0)
+
+    # Are we debugging this?
+    if options.debug:
+        import pdb
+
+        pdb.run('main(options, args)')
+
+    # Are we profiling this?
+    elif options.profile:
+        import profile
+
+        print("%s profile:" % sys.argv[0])
+        profile.run('main(options, args)')
+
+    else:
+        main(options, args)
