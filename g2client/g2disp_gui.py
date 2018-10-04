@@ -32,6 +32,7 @@ class g2Disp_GUI(object):
         self.logger = obj.logger
         self.w = Bunch.Bunch()
 
+
         self.ev_quit = ev_quit
 
         # size (in lines) we will let log buffer grow to before
@@ -43,7 +44,7 @@ class g2Disp_GUI(object):
         self.recorder = Recorder.SoundRecorder()
 
         # Which system we are connecting to
-        self.rohosts = 'g2ins1'
+        self.rohosts = options.rohosts
 
         self.app = Widgets.Application(logger=self.logger)
         self.app.add_callback('shutdown', self.quit)
@@ -206,6 +207,7 @@ class g2Disp_GUI(object):
         self.w.selector.hide()
         return True
 
+
     def muteOnOff(self, w, tf):
         # mute audio
         if tf:
@@ -312,8 +314,9 @@ class g2Disp_GUI(object):
         self.logger.debug("key press event, key=%s" % (keyname))
         if keyname in self.keys_ctrl:
             # TODO: use threadpool?
-            t = threading.Thread(target=self.start_record)
-            t.start()
+            #t = threading.Thread(target=self.start_record)
+            #t.start()
+            pass
         return True
 
     def key_release_event(self, viewer, keyname):
@@ -328,9 +331,10 @@ class g2Disp_GUI(object):
         if not has_focus:
             self.ev_intercom.set()
             #self.viewer.set_bg(0.5, 0.5, 0.5)
-            self.viewer.onscreen_message("Move cursor into window to use")
+            #self.viewer.onscreen_message("Move cursor into window to use")
         else:
-            self.viewer.onscreen_message("Press CTRL to talk")
+            #self.viewer.onscreen_message("Press CTRL to talk")
+            pass
 
         return True
 

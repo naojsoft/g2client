@@ -223,7 +223,7 @@ def add_options(optprs):
     optprs.add_option("--profile", dest="profile", action="store_true",
                       default=False,
                       help="Run the profiler on main()")
-    optprs.add_option("--rohosts", dest="rohosts", default='g2s1,g2s3,g2s4',
+    optprs.add_option("--rohosts", dest="rohosts", default='g2ins1',
                       metavar="HOSTLIST",
                       help="Hosts to use for remote objects connection")
     optprs.add_option("--svcname", dest="svcname", default=None,
