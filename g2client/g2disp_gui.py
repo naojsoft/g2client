@@ -31,6 +31,7 @@ class g2Disp_GUI(object):
         # Share main object's logger
         self.logger = obj.logger
         self.w = Bunch.Bunch()
+
         self.ev_quit = ev_quit
 
         # size (in lines) we will let log buffer grow to before
@@ -74,9 +75,11 @@ class g2Disp_GUI(object):
         sysmenu = menubar.add_name('System')
 
         w = sysmenu.add_name("Summit", checkable=True)
+        w.set_state(self.options.rohosts == 'g2ins1')
         w.add_callback('activated', self.select_system, 'g2ins1')
 
         w = sysmenu.add_name("Simulator", checkable=True)
+        w.set_state(self.options.rohosts == 'g2sim')
         w.add_callback('activated', self.select_system, 'g2sim')
 
         w = sysmenu.add_name("Other", checkable=True)
@@ -92,11 +95,12 @@ class g2Disp_GUI(object):
         fi.enable_autocuts('on')
         fi.set_autocut_params('histogram')
         fi.enable_auto_orient(True)
-        fi.enable_autozoom('on')
+        fi.enable_autozoom('off')
+        fi.scale_to(1, 1)
         fi.set_bg(0.2, 0.2, 0.2)
         self.viewer = fi
 
-        fi.set_desired_size(400, 200)
+        fi.set_desired_size(350, 150)
         iw = Viewers.GingaViewerWidget(viewer=fi)
         vbox.add_widget(iw, stretch=1)
 
@@ -189,7 +193,6 @@ class g2Disp_GUI(object):
         d.add_callback('close', lambda w: self.hide_selector())
         self.w.selector = d
 
-        # This only works on newer versions of Gtk apparently
         vbox = d.get_content_area()
         w = Widgets.Label('Enter hostname of system')
         vbox.add_widget(w, stretch=0)

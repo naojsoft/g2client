@@ -125,9 +125,8 @@ class g2Disp(object):
         passwd = binascii.a2b_base64(passwd)
 
         passwd_file = '/tmp/v__%d' % os.getpid()
-        out_f = open(passwd_file, 'w')
-        out_f.write(passwd)
-        out_f.close()
+        with open(passwd_file, 'wb') as out_f:
+            out_f.write(passwd)
 
         # VNC window
         cmdstr = "vncviewer -display %s -geometry=%s %s -passwd %s RemoteResize=0" % (
