@@ -780,7 +780,7 @@ def main(options, args):
 
     if options.logfile:
         fileHdlr  = logging.handlers.RotatingFileHandler(options.logfile,
-                                                         maxBytes=options.loglimit,
+                                                         maxBytes=options.logsize,
                                                          backupCount=4)
         fileHdlr.setFormatter(fmt)
         fileHdlr.setLevel(options.loglevel)
@@ -895,7 +895,7 @@ if __name__ == '__main__':
     optprs.add_option("--loglevel", dest="loglevel", metavar="LEVEL",
                       type="int", default=logging.INFO,
                       help="Set logging level to LEVEL")
-    optprs.add_option("--loglimit", dest="loglimit", metavar="NUM",
+    optprs.add_option("--logsize", dest="logsize", metavar="NUM",
                       type="int", default=200*1024*1024,
                       help="Set logging limit to NUM bytes before rollover")
     optprs.add_option("--mountmangle", dest="mountmangle", 
