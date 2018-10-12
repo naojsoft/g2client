@@ -61,6 +61,8 @@ import subprocess
 from g2base.six.moves import range
 from g2base.remoteObjects.ro_XMLRPC import Queue, SimpleXMLRPCServer
 
+from g2base import ssdlog
+
 LOG_FORMAT = '%(asctime)s | %(levelname)1.1s | %(filename)s:%(lineno)d | %(message)s'
 
 version = "20120409"
@@ -773,24 +775,7 @@ def datasink(options, logger, keyname, hmac_digest, sink):
 def main(options, args):
 
     # Create top level logger.
-    logger = logging.getLogger('datasink')
-    logger.setLevel(logging.DEBUG)
-
-    fmt = logging.Formatter(LOG_FORMAT)
-
-    if options.logfile:
-        fileHdlr  = logging.handlers.RotatingFileHandler(options.logfile,
-                                                         maxBytes=options.logsize,
-                                                         backupCount=4)
-        fileHdlr.setFormatter(fmt)
-        fileHdlr.setLevel(options.loglevel)
-        logger.addHandler(fileHdlr)
-    # Add output to stderr, if requested
-    if options.logstderr or (not options.logfile):
-        stderrHdlr = logging.StreamHandler()
-        stderrHdlr.setFormatter(fmt)
-        stderrHdlr.setLevel(options.loglevel)
-        logger.addHandler(stderrHdlr)
+    logger = ssdlog.make_logger('datasink', options)
 
     if options.keyfile:
         keypath, keyfile = os.path.split(options.keyfile)
@@ -890,14 +875,6 @@ if __name__ == '__main__':
     optprs.add_option("--kill", dest="kill", default=False,
                       action="store_true",
                       help="Kill running instance of datasink")
-    optprs.add_option("--log", dest="logfile", metavar="FILE",
-                      help="Write logging output to FILE")
-    optprs.add_option("--loglevel", dest="loglevel", metavar="LEVEL",
-                      type="int", default=logging.INFO,
-                      help="Set logging level to LEVEL")
-    optprs.add_option("--logsize", dest="logsize", metavar="NUM",
-                      type="int", default=200*1024*1024,
-                      help="Set logging limit to NUM bytes before rollover")
     optprs.add_option("--mountmangle", dest="mountmangle", 
                       help="Specify a file prefix transformation for NFS copies")
     optprs.add_option("--md5check", dest="md5check", action="store_true",
@@ -937,6 +914,7 @@ if __name__ == '__main__':
     optprs.add_option("--xferlog", dest="xferlog", metavar="FILE",
                       default="/dev/null",
                       help="Specify log file for transfers")
+    ssdlog.addlogopts(optprs)
 
     (options, args) = optprs.parse_args(sys.argv[1:])
 
