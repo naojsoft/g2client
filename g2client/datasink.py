@@ -925,7 +925,7 @@ if __name__ == '__main__':
         pidfile = ('/tmp/datasink_%d.pid' % (options.port))
 
     if options.detach:
-        import myproc
+        from g2base import myproc
         
         print("Detaching from this process...")
         sys.stdout.flush()
