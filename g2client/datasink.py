@@ -58,7 +58,7 @@ import bz2
 import subprocess
 
 # TODO: these need to be weaned away from g2base
-from g2base.six.moves import range
+from g2base import six
 from g2base.remoteObjects.ro_XMLRPC import Queue, SimpleXMLRPCServer
 
 from g2base import ssdlog
