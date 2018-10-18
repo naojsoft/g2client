@@ -21,7 +21,6 @@ setup(
     keywords = "subaru, telescope, observation, client",
     url = "http://naojsoft.github.com/g2client",
     packages = ['g2client',
-                'g2client.util',
                 'g2client.icons',
                 ],
     package_data = {'g2client.icons':['*.png']},

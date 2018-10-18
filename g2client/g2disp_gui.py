@@ -15,7 +15,6 @@ from ginga.util.six.moves import queue as Queue
 from g2base import Bunch, ssdlog
 
 from g2client import g2disp, icons
-from g2client.util import Recorder
 
 
 # path to our icons
@@ -32,16 +31,11 @@ class g2Disp_GUI(object):
         self.logger = obj.logger
         self.w = Bunch.Bunch()
 
-
         self.ev_quit = ev_quit
 
         # size (in lines) we will let log buffer grow to before
         # trimming
         self.logsize = 5000
-        self.keys_ctrl = ['control_l', 'control_r']
-
-        self.ev_intercom = threading.Event()
-        self.recorder = Recorder.SoundRecorder()
 
         # Which system we are connecting to
         self.rohosts = options.rohosts
@@ -74,17 +68,22 @@ class g2Disp_GUI(object):
 
         # create an Option pulldown menu, and add it to the menu bar
         sysmenu = menubar.add_name('System')
+        rohosts = self.rohosts.lower().split('.')[0]
 
         w = sysmenu.add_name("Summit", checkable=True)
-        w.set_state(self.options.rohosts == 'g2ins1')
+        w.set_state(rohosts == 'g2ins1')
         w.add_callback('activated', self.select_system, 'g2ins1')
+        self.w.summit = w
 
         w = sysmenu.add_name("Simulator", checkable=True)
-        w.set_state(self.options.rohosts == 'g2sim')
+        w.set_state(rohosts == 'g2sim')
         w.add_callback('activated', self.select_system, 'g2sim')
+        self.w.simulator = w
 
         w = sysmenu.add_name("Other", checkable=True)
         w.add_callback('activated', self.select_system, 'other')
+        w.set_state(rohosts not in ['g2sim', 'g2ins1'])
+        self.w.other = w
 
         vbox.add_widget(menubar, stretch=0)
 
@@ -105,9 +104,6 @@ class g2Disp_GUI(object):
         iw = Viewers.GingaViewerWidget(viewer=fi)
         vbox.add_widget(iw, stretch=1)
 
-        fi.add_callback('key-press', self.key_press_event)
-        fi.add_callback('key-release', self.key_release_event)
-        fi.add_callback('focus', self.focus_event)
         #fi.ui_set_active(True)
 
         # load logo
@@ -203,10 +199,8 @@ class g2Disp_GUI(object):
         self.system = w
 
     def hide_selector(self):
-        print("HIDE SELECTOR!")
         self.w.selector.hide()
         return True
-
 
     def muteOnOff(self, w, tf):
         # mute audio
@@ -223,6 +217,12 @@ class g2Disp_GUI(object):
         time.sleep(1.0)
         self.obj.start_server(rohosts, self.options)
 
+    def _update_checkboxes(self):
+        rohosts = self.rohosts.lower().split('.')[0]
+        self.w.summit.set_state(rohosts == 'g2ins1')
+        self.w.simulator.set_state(rohosts == 'g2sim')
+        self.w.other.set_state(rohosts not in ['g2sim', 'g2ins1'])
+
     def select_system(self, menu_w, state, name):
         if not state:
             return True
@@ -232,6 +232,8 @@ class g2Disp_GUI(object):
             self.w.selector.show()
             return True
         self.rohosts = name
+        self._update_checkboxes()
+
         self.restart_servers(self.rohosts.split(','))
         return True
 
@@ -243,6 +245,8 @@ class g2Disp_GUI(object):
             return True
 
         self.rohosts = self.system.get_text()
+        self._update_checkboxes()
+
         self.restart_servers(self.rohosts.split(','))
 
     def set_pos(self, geom):
@@ -294,49 +298,6 @@ class g2Disp_GUI(object):
         self.app.quit()
         self.logger.debug('done quitting')
         return False
-
-    def start_record(self):
-        self.ev_intercom.clear()
-        self.viewer.onscreen_message("Now recording; release to send")
-
-        self.recorder.recordToWAVbufferSave(self.ev_intercom)
-
-        self.viewer.onscreen_message("Press CTRL to talk")
-
-        buf = self.recorder.getSavedSample()
-        self.logger.info("buffer is %d bytes" % len(buf))
-
-        #self.obj.soundsink.playSound(buf, format='wav', decode=False)
-        self.obj.soundsource.playSound(buf, format='wav', compress=True)
-
-    def key_press_event(self, viewer, keyname):
-        #keyname = event.key
-        self.logger.debug("key press event, key=%s" % (keyname))
-        if keyname in self.keys_ctrl:
-            # TODO: use threadpool?
-            #t = threading.Thread(target=self.start_record)
-            #t.start()
-            pass
-        return True
-
-    def key_release_event(self, viewer, keyname):
-        #keyname = event.key
-        self.logger.debug("key release event, key=%s" % (keyname))
-        if (keyname in self.keys_ctrl):
-            self.ev_intercom.set()
-        return True
-
-    def focus_event(self, viewer, has_focus):
-        self.logger.debug("focus event, focus=%s" % (has_focus))
-        if not has_focus:
-            self.ev_intercom.set()
-            #self.viewer.set_bg(0.5, 0.5, 0.5)
-            #self.viewer.onscreen_message("Move cursor into window to use")
-        else:
-            #self.viewer.onscreen_message("Press CTRL to talk")
-            pass
-
-        return True
 
 
 class GraphicalUI(object):
