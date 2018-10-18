@@ -25,8 +25,7 @@ setup(
                 'g2client.icons',
                 ],
     package_data = {'g2client.icons':['*.png']},
-    scripts = ['scripts/datasink', 'scripts/soundsink', 'scripts/g2disp',
-               'scripts/g2disp_gui'],
+    scripts = ['scripts/soundsink', 'scripts/g2disp', 'scripts/g2disp_gui'],
     classifiers = [
         "License :: OSI Approved :: BSD License",
         "Operating System :: MacOS :: MacOS X",
