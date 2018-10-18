@@ -155,7 +155,7 @@ class g2Disp(object):
             key = localdisp + localgeom
             self.procs[key].killpg()
             del self.procs[key]
-        except (myproc.myprocError, OSError) as e:
+        except Exception as e:
             self.logger.error("viewer off error: %s" % (str(e)))
         return 0
 
@@ -165,7 +165,7 @@ class g2Disp(object):
             try:
                 self.procs[key].killpg()
                 del self.procs[key]
-            except (myproc.myprocError, OSError) as e:
+            except Exception as e:
                 self.logger.warn("viewer off error: %s" % (str(e)))
         return 0
 
