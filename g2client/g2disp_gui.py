@@ -10,7 +10,7 @@ import threading
 
 from ginga.gw import Widgets, Viewers, GwHelp
 from ginga.RGBImage import RGBImage
-from ginga.util.six.moves import queue as Queue
+from g2base.six.moves import queue as Queue
 
 from g2base import Bunch, ssdlog
 
