@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 #
 # soundsink -- a program to receive sound from Gen2
 #
@@ -27,6 +27,9 @@ if __name__ == '__main__':
     optprs.add_option("--compress", dest="compress", default=False,
                       action="store_true",
                       help="Use compression on sound buffers")
+    optprs.add_option("--dst", dest="destination", default=None,
+                      metavar="NAME",
+                      help="Name our destination site")
     optprs.add_option("--sink", dest="soundsink", default=False,
                       action="store_true",
                       help="Use as soundsink; i.e. play sounds locally")

@@ -6,7 +6,7 @@
 The Gen2 distributed sound system (SoundSink/SoundSource).
 """
 from __future__ import print_function
-
+from __future__ import absolute_import
 import sys, os
 import time
 import threading
@@ -86,7 +86,7 @@ class SoundSource(SoundBase):
         self.tag = 'mon.sound.sound0'
 
     def _playSound(self, buffer, format=None, encode=True, compress=None,
-                   filename=None, priority=20):
+                   filename=None, priority=20, dst='all'):
 
         ## if compress == None:
         ##     compress = self.compress
@@ -112,21 +112,21 @@ class SoundSource(SoundBase):
                                  buffer=buffer, format=format,
                                  filename=filename,
                                  compressed=compress,
-                                 priority=priority)
+                                 priority=priority, dst=dst)
 
         except Exception as e:
             self.logger.error("Error submitting remote sound: %s" % str(e))
 
     def playSound(self, buffer, format=None, encode=True, compress=None,
-                  priority=20):
+                  priority=20, dst='all'):
         t = Task.FuncTask2(self._playSound, buffer, format=format,
                            encode=encode, compress=compress,
-                           priority=priority)
+                           priority=priority, dst=dst)
         t.init_and_start(self)
         return ro.OK
 
     def _playFile(self, file, format=None, encode=True, compress=None,
-                  priority=20):
+                  priority=20, dst='all'):
         with self.lock:
             if self.muted:
                 self.logger.warn("play sound buffer: mute is ON")
@@ -135,29 +135,30 @@ class SoundSource(SoundBase):
         dirname, filename = os.path.split(file)
 
         try:
-            with open(file, 'r') as in_f:
+            with open(file, 'rb') as in_f:
                 buffer = in_f.read()
 
             self._playSound(buffer, format=format, filename=filename,
                             encode=encode, compress=compress,
-                            priority=priority)
+                            priority=priority, dst=dst)
 
         except Exception as e:
             self.logger.error("Error submitting remote sound: %s" % str(e))
 
     def playFile(self, file, format=None, encode=True, compress=None,
-                 priority=20):
+                 priority=20, dst='all'):
         t = Task.FuncTask2(self._playFile, file, format=format,
                            encode=encode, compress=compress,
-                           priority=priority)
+                           priority=priority, dst=dst)
         t.init_and_start(self)
         return ro.OK
 
     def _playText(self, text, voice='slt', volume=0,
-                  encode=True, compress=None, priority=20):
+                  encode=True, compress=None, priority=20, dst='all'):
         # TODO: figure out volume options
         hashobj = hashlib.sha256()
-        hashobj.update(text + voice + str(volume))
+        combo = text + voice + str(volume)
+        hashobj.update(combo.encode())
         fname = hashobj.hexdigest() + '.wav'
         sndpath = os.path.join("/tmp", fname)
         # see if we need to create this sound file--there will be a cached
@@ -181,10 +182,10 @@ class SoundSource(SoundBase):
                 return
 
         self._playFile(sndpath, format='wav', encode=encode,
-                       compress=compress, priority=priority)
+                       compress=compress, priority=priority, dst=dst)
 
     def playText(self, text, voice='slt', volume=None,
-                 encode=True, compress=None, priority=20):
+                 encode=True, compress=None, priority=20, dst='all':
         """
         TTS text-to-sound service.
 
@@ -193,7 +194,7 @@ class SoundSource(SoundBase):
         """
         t = Task.FuncTask2(self._playText, text, voice=voice, volume=volume,
                            encode=encode, compress=compress,
-                           priority=priority)
+                           priority=priority, dst=dst)
         t.init_and_start(self)
         return ro.OK
 
@@ -212,6 +213,10 @@ class SoundSink(SoundBase):
         self.playcond = threading.Condition()
         self.priority_list = []
         self.waitval = 0.150
+        self.dst = set(['all', 'summit'])
+        dst = kwdargs.get('dst', None)
+        if dst is not None:
+            self.dst.add(dst)
 
         self.tag = 'soundsink'
 
@@ -331,7 +336,7 @@ class SoundSink(SoundBase):
                 return ro.OK
 
             try:
-                with open(file, 'r') as in_f:
+                with open(file, 'rb') as in_f:
                     data = in_f.read()
 
                 dirname, filename = os.path.split(file)
@@ -360,6 +365,13 @@ class SoundSink(SoundBase):
 
         info = bnch.value
         #self.logger.debug("info is: %s" % (str(info.keys())))
+
+        # check destination for sound matches (assume None is same as 'all')
+        dsts = info.get('dst', 'all')
+        if dsts is not None:
+            dsts = set(dsts.split(',')).intersection(self.dst)
+            if len(dsts) == 0:
+                return
 
         self.playSound(info['buffer'], filename=info['filename'],
                        decode=True, format=info['format'],
@@ -396,7 +408,8 @@ def main(options, args):
     # Make our callback object/remote object
     if options.soundsink:
         mobj = SoundSink(monitor=minimon, logger=logger, queue=queue,
-                         channels=channels, ev_quit=ev_quit)
+                         channels=channels, ev_quit=ev_quit,
+                         dst=options.destination)
     else:
         mobj = SoundSource(monitor=minimon, logger=logger, queue=queue,
                            channels=channels, ev_quit=ev_quit,
