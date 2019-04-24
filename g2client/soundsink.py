@@ -185,7 +185,7 @@ class SoundSource(SoundBase):
                        compress=compress, priority=priority, dst=dst)
 
     def playText(self, text, voice='slt', volume=None,
-                 encode=True, compress=None, priority=20, dst='all':
+                 encode=True, compress=None, priority=20, dst='all'):
         """
         TTS text-to-sound service.
 
