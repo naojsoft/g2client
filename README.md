@@ -9,7 +9,7 @@ site to participate as a local or remote observation location.
 
 * Requires `g2cam` and `ginga` packages from naojsoft.
 
-* For client use also requires the 'vncviewer` and `paplay` programs to
+* For client use also requires the `vncviewer` and `paplay` programs to
   be installed and in the PATH for connecting screens and playing
   sounds.  For VNC client we recommend tigervnc.
 
