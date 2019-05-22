@@ -10,6 +10,8 @@ import threading
 
 from ginga.gw import Widgets, Viewers, GwHelp
 from ginga.RGBImage import RGBImage
+from ginga.misc import Settings
+from ginga.util.paths import ginga_home
 
 from g2base.six.moves import queue as Queue
 from g2base import Bunch, ssdlog
@@ -39,6 +41,16 @@ class g2Disp_GUI(object):
 
         # Which system we are connecting to
         self.rohosts = options.rohosts
+
+        # read our configuration file
+        conf_file = os.path.join(ginga_home, 'g2disp.cfg')
+        self.settings = Settings.SettingGroup(name='g2disp', logger=self.logger,
+                                              preffile=conf_file)
+        # this will throw an error if the configuration file is not present
+        self.settings.load()
+
+        self.sum = self.settings.get('summit')
+        self.sim = self.settings.get('simulator')
 
         self.app = Widgets.Application(logger=self.logger)
         self.app.add_callback('shutdown', self.quit)
@@ -71,18 +83,18 @@ class g2Disp_GUI(object):
         rohosts = self.rohosts.lower().split('.')[0]
 
         w = sysmenu.add_name("Summit", checkable=True)
-        w.set_state(rohosts == 'g2ins1')
-        w.add_callback('activated', self.select_system, 'g2ins1')
+        w.set_state(rohosts == self.sum)
+        w.add_callback('activated', self.select_system, self.sum)
         self.w.summit = w
 
         w = sysmenu.add_name("Simulator", checkable=True)
-        w.set_state(rohosts == 'g2sim')
-        w.add_callback('activated', self.select_system, 'g2sim')
+        w.set_state(rohosts == self.sim)
+        w.add_callback('activated', self.select_system, self.sim)
         self.w.simulator = w
 
         w = sysmenu.add_name("Other", checkable=True)
         w.add_callback('activated', self.select_system, 'other')
-        w.set_state(rohosts not in ['g2sim', 'g2ins1'])
+        w.set_state(rohosts not in [self.sim, self.sum])
         self.w.other = w
 
         vbox.add_widget(menubar, stretch=0)
@@ -219,9 +231,9 @@ class g2Disp_GUI(object):
 
     def _update_checkboxes(self):
         rohosts = self.rohosts.lower().split('.')[0]
-        self.w.summit.set_state(rohosts == 'g2ins1')
-        self.w.simulator.set_state(rohosts == 'g2sim')
-        self.w.other.set_state(rohosts not in ['g2sim', 'g2ins1'])
+        self.w.summit.set_state(rohosts == self.sum)
+        self.w.simulator.set_state(rohosts == self.sim)
+        self.w.other.set_state(rohosts not in [self.sim, self.sum])
 
     def select_system(self, menu_w, state, name):
         if not state:

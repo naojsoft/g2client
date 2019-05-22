@@ -18,9 +18,6 @@ from g2client import soundsink
 default_svc_port = 19051
 default_mon_port = 19052
 
-# Sound device to use for audio
-default_sound_dev = "/dev/audio"
-
 
 # TODO: put this in a utilities module
 def error(msg, exitcode=0):
@@ -223,12 +220,9 @@ def add_options(optprs):
     optprs.add_option("--profile", dest="profile", action="store_true",
                       default=False,
                       help="Run the profiler on main()")
-    optprs.add_option("--rohosts", dest="rohosts", default='g2ins1',
+    optprs.add_option("--rohosts", dest="rohosts", default='localhost',
                       metavar="HOSTLIST",
                       help="Hosts to use for remote objects connection")
-    optprs.add_option("--svcname", dest="svcname", default=None,
-                      metavar="NAME",
-                      help="Act as a sound distribution service with NAME")
     ssdlog.addlogopts(optprs)
 
 
