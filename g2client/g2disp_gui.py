@@ -10,8 +10,8 @@ import threading
 
 from ginga.gw import Widgets, Viewers, GwHelp
 from ginga.RGBImage import RGBImage
-from g2base.six.moves import queue as Queue
 
+from g2base.six.moves import queue as Queue
 from g2base import Bunch, ssdlog
 
 from g2client import g2disp, icons
@@ -157,7 +157,7 @@ class g2Disp_GUI(object):
         guiHdlr = ssdlog.QueueHandler(self.queue)
         fmt = logging.Formatter(ssdlog.STD_FORMAT)
         guiHdlr.setFormatter(fmt)
-        guiHdlr.setLevel(logging.DEBUG)
+        guiHdlr.setLevel(logging.INFO)
         self.logger.addHandler(guiHdlr)
 
         vbox.add_widget(tw, stretch=1)
