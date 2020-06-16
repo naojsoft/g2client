@@ -85,7 +85,7 @@ class SoundSource(SoundBase):
 
         self.tag = 'mon.sound.sound0'
 
-    def _playSound(self, buffer, format=None, encode=True, compress=None,
+    def _playSound(self, buf, format=None, encode=True, compress=False,
                    filename=None, priority=20, dst='all'):
 
         ## if compress == None:
@@ -97,35 +97,36 @@ class SoundSource(SoundBase):
                 return ro.OK
 
         if compress:
-            beforesize = len(buffer)
-            buffer = ro.compress(buffer)
-            aftersize = len(buffer)
+            beforesize = len(buf)
+            buf = ro.compress(buf)
+            aftersize = len(buf)
             self.logger.debug("Compressed audio buffer %d->%d bytes." % (
                     beforesize, aftersize))
 
         if encode:
-            buffer = ro.binary_encode(buffer)
+            buf = ro.binary_encode(buf)
             self.logger.debug("Encoded audio buffer for transport.")
 
         try:
             self.monitor.setvals(self.channels, self.tag,
-                                 buffer=buffer, format=format,
+                                 buffer=buf, format=format,
                                  filename=filename,
                                  compressed=compress,
                                  priority=priority, dst=dst)
 
         except Exception as e:
-            self.logger.error("Error submitting remote sound: %s" % str(e))
+            self.logger.error("Error submitting remote sound: {}".format(e),
+                              exc_info=True)
 
-    def playSound(self, buffer, format=None, encode=True, compress=None,
+    def playSound(self, buf, format=None, encode=True, compress=False,
                   priority=20, dst='all'):
-        t = Task.FuncTask2(self._playSound, buffer, format=format,
+        t = Task.FuncTask2(self._playSound, buf, format=format,
                            encode=encode, compress=compress,
                            priority=priority, dst=dst)
         t.init_and_start(self)
         return ro.OK
 
-    def _playFile(self, file, format=None, encode=True, compress=None,
+    def _playFile(self, file, format=None, encode=True, compress=False,
                   priority=20, dst='all'):
         with self.lock:
             if self.muted:
@@ -136,16 +137,17 @@ class SoundSource(SoundBase):
 
         try:
             with open(file, 'rb') as in_f:
-                buffer = in_f.read()
+                buf = in_f.read()
 
-            self._playSound(buffer, format=format, filename=filename,
+            self._playSound(buf, format=format, filename=filename,
                             encode=encode, compress=compress,
                             priority=priority, dst=dst)
 
         except Exception as e:
-            self.logger.error("Error submitting remote sound: %s" % str(e))
+            self.logger.error("Error submitting remote sound: {}".format(e),
+                              exc_info=True)
 
-    def playFile(self, file, format=None, encode=True, compress=None,
+    def playFile(self, file, format=None, encode=True, compress=False,
                  priority=20, dst='all'):
         t = Task.FuncTask2(self._playFile, file, format=format,
                            encode=encode, compress=compress,
@@ -153,8 +155,10 @@ class SoundSource(SoundBase):
         t.init_and_start(self)
         return ro.OK
 
-    def _playText(self, text, voice='slt', volume=0,
-                  encode=True, compress=None, priority=20, dst='all'):
+    def _playText(self, text, voice='slt', volume=None,
+                  encode=True, compress=False, priority=20, dst='all'):
+        if volume is None:
+            volume = 0
         # TODO: figure out volume options
         hashobj = hashlib.sha256()
         combo = text + voice + str(volume)
@@ -185,7 +189,7 @@ class SoundSource(SoundBase):
                        compress=compress, priority=priority, dst=dst)
 
     def playText(self, text, voice='slt', volume=None,
-                 encode=True, compress=None, priority=20, dst='all'):
+                 encode=True, compress=False, priority=20, dst='all'):
         """
         TTS text-to-sound service.
 
@@ -220,7 +224,7 @@ class SoundSink(SoundBase):
 
         self.tag = 'soundsink'
 
-    def _playSound_bg(self, buffer, filename=None, decode=True,
+    def _playSound_bg(self, buf, filename=None, decode=True,
                       format=None, decompress=False, priority=20):
 
         # First thing is to add our priority to the priority list
@@ -236,9 +240,9 @@ class SoundSink(SoundBase):
             try:
                 # Decode binary data
                 if decode:
-                    data = ro.binary_decode(buffer)
+                    data = ro.binary_decode(buf)
                 else:
-                    data = buffer
+                    data = buf
 
                 # Decompress data if necessary
                 if decompress:
@@ -308,14 +312,14 @@ class SoundSink(SoundBase):
                     self.playcond.notifyAll()
 
 
-    def playSound_bg(self, buffer, filename=None, decode=True,
+    def playSound_bg(self, buf, filename=None, decode=True,
                      format=None, decompress=False, priority=20):
-        t = Task.FuncTask2(self._playSound_bg, buffer, format=format,
+        t = Task.FuncTask2(self._playSound_bg, buf, format=format,
                            filename=filename, decode=decode,
                            decompress=decompress, priority=priority)
         t.init_and_start(self)
 
-    def playSound(self, buffer, format=None,
+    def playSound(self, buf, format=None,
                   filename=None, decode=True, decompress=False,
                   priority=20):
         with self.lock:
@@ -323,7 +327,7 @@ class SoundSink(SoundBase):
                 self.logger.warn("play sound buffer: mute is ON")
                 return ro.OK
 
-            self.playSound_bg(buffer, format=format,
+            self.playSound_bg(buf, format=format,
                               filename=filename, decode=decode,
                               decompress=decompress, priority=priority)
             return ro.OK
