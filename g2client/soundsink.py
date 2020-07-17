@@ -368,7 +368,7 @@ class SoundSink(SoundBase):
             return
 
         info = bnch.value
-        #self.logger.debug("info is: %s" % (str(info.keys())))
+        #self.logger.debug("info is: %s" % (str(list(info.keys()))))
 
         # check destination for sound matches (assume None is same as 'all')
         dsts = info.get('dst', 'all')

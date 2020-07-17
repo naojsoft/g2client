@@ -158,7 +158,7 @@ class g2Disp(object):
 
     def allViewersOff(self):
         self.logger.info("All viewers OFF")
-        for key in self.procs.keys():
+        for key in list(self.procs.keys()):
             try:
                 self.procs[key].killpg()
                 del self.procs[key]
