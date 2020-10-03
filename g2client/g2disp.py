@@ -1,9 +1,9 @@
 #
-# Eric Jeschke (eric@naoj.org)
+# Gen2 observation workstation client -- command line version
 #
 """
+Gen2 observation workstation client -- command line version
 """
-from __future__ import print_function
 import sys, time, os
 import threading
 import binascii
@@ -198,32 +198,32 @@ class CmdLineUI(object):
             obj.stop_server()
 
 
-def add_options(optprs):
-    optprs.add_option("--debug", dest="debug", default=False,
-                      action="store_true",
-                      help="Enter the pdb debugger on main()")
-    optprs.add_option("-c", "--channels", dest="channels", default='sound',
-                      metavar="LIST",
-                      help="Subscribe to the comma-separated LIST of channels")
-    optprs.add_option("-m", "--monitor", dest="monitor", default='monitor',
-                      metavar="NAME",
-                      help="Subscribe to feeds from monitor service NAME")
-    optprs.add_option("--monport", dest="monport", type="int",
-                      default=default_mon_port, metavar="PORT",
-                      help="Use PORT for our monitor")
-    optprs.add_option("--numthreads", dest="numthreads", type="int",
-                      default=50, metavar="NUM",
-                      help="Use NUM threads in thread pool")
-    optprs.add_option("--port", dest="port", type="int",
-                      default=default_svc_port, metavar="PORT",
-                      help="Use PORT for our monitor")
-    optprs.add_option("--profile", dest="profile", action="store_true",
-                      default=False,
-                      help="Run the profiler on main()")
-    optprs.add_option("--rohosts", dest="rohosts", default='localhost',
-                      metavar="HOSTLIST",
-                      help="Hosts to use for remote objects connection")
-    ssdlog.addlogopts(optprs)
+def add_options(argprs):
+    argprs.add_argument("--debug", dest="debug", default=False,
+                        action="store_true",
+                        help="Enter the pdb debugger on main()")
+    argprs.add_argument("-c", "--channels", dest="channels", default='sound',
+                        metavar="LIST",
+                        help="Subscribe to the comma-separated LIST of channels")
+    argprs.add_argument("-m", "--monitor", dest="monitor", default='monitor',
+                        metavar="NAME",
+                        help="Subscribe to feeds from monitor service NAME")
+    argprs.add_argument("--monport", dest="monport", type=int,
+                        default=default_mon_port, metavar="PORT",
+                        help="Use PORT for our monitor")
+    argprs.add_argument("--numthreads", dest="numthreads", type=int,
+                        default=50, metavar="NUM",
+                        help="Use NUM threads in thread pool")
+    argprs.add_argument("--port", dest="port", type=int,
+                        default=default_svc_port, metavar="PORT",
+                        help="Use PORT for our monitor")
+    argprs.add_argument("--profile", dest="profile", action="store_true",
+                        default=False,
+                        help="Run the profiler on main()")
+    argprs.add_argument("--rohosts", dest="rohosts", default='localhost',
+                        metavar="HOSTLIST",
+                        help="Hosts to use for remote objects connection")
+    ssdlog.addlogopts(argprs)
 
 
 def main(options, args, ui):

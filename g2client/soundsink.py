@@ -1,18 +1,12 @@
-#!/usr/bin/env python
-#
-# Eric Jeschke (eric@naoj.org)
-#
 """
 The Gen2 distributed sound system (SoundSink/SoundSource).
 """
-from __future__ import print_function
-from __future__ import absolute_import
 import sys, os
 import time
 import threading
 import hashlib
 import tempfile
-from g2base.six.moves import queue as Queue
+import queue as Queue
 
 from g2base.remoteObjects import remoteObjects as ro
 from g2base.remoteObjects import Monitor
@@ -389,8 +383,11 @@ def main(options, args):
     logger = ssdlog.make_logger(basename, options)
 
     # Initialize remote objects subsystem
+    args = ['localhost']
+    if options.rohosts is not None:
+        args = options.rohosts.split(',')
     try:
-        ro.init()
+        ro.init(args)
 
     except ro.remoteObjectError as e:
         logger.error("Error initializing remote objects subsystem: %s" % \
@@ -464,6 +461,3 @@ def main(options, args):
         minimon.stop(wait=True)
 
     logger.info("%s exiting..." % basename)
-
-
-#END

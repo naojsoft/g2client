@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#! /usr/bin/env python3
 
 import sys
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 import ginga.toolkit as ginga_toolkit
 
@@ -25,20 +25,19 @@ def main(options, args):
 # Create demo in root window for testing.
 if __name__ == '__main__':
 
-    usage = "usage: %prog [options]"
-    optprs = OptionParser(usage=usage, version=('%%prog'))
-    optprs.add_option("-g", "--geometry", dest="geometry",
-                      metavar="GEOM", default="-30-100",
-                      help="X geometry for initial size and placement")
-    optprs.add_option("-t", "--toolkit", dest="toolkit", metavar="NAME",
-                      default='qt5',
-                      help="Choose GUI toolkit (gtk|qt)")
-    g2disp.add_options(optprs)
+    argprs = ArgumentParser(description="Gen2 observation client GUI")
+    argprs.add_argument("-g", "--geometry", dest="geometry",
+                        metavar="GEOM", default="-30-100",
+                        help="X geometry for initial size and placement")
+    argprs.add_argument("-t", "--toolkit", dest="toolkit", metavar="NAME",
+                        default='qt5',
+                        help="Choose GUI toolkit (gtk|qt)")
+    g2disp.add_options(argprs)
 
-    (options, args) = optprs.parse_args(sys.argv[1:])
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
 
     if len(args) != 0:
-        optprs.error("incorrect number of arguments")
+        argprs.error("incorrect number of arguments")
 
     # Are we debugging this?
     if options.debug:
@@ -55,5 +54,3 @@ if __name__ == '__main__':
 
     else:
         main(options, args)
-
-#END

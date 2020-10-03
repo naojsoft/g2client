@@ -1,8 +1,9 @@
 #
-# Eric Jeschke (eric@naoj.org)
+# Gen2 observation workstation client -- GUI version
 #
-from __future__ import print_function
-
+"""
+Gen2 observation workstation client -- GUI version
+"""
 import sys, time
 import re, os
 import logging
