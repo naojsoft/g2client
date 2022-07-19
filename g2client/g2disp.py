@@ -119,7 +119,7 @@ class g2Disp(object):
 
     def viewerOn(self, localdisp, localgeom, remotedisp, passwd, viewonly):
         self.muteOff()
-        passwd = binascii.a2b_base64(passwd)
+        passwd = binascii.a2b_base64(passwd.encode())
 
         passwd_file = '/tmp/v__%d' % os.getpid()
         with open(passwd_file, 'wb') as out_f:
