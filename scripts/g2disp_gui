@@ -3,9 +3,8 @@
 import sys
 from argparse import ArgumentParser
 
+from g2base import ssdlog
 import ginga.toolkit as ginga_toolkit
-
-from g2client import g2disp
 
 
 def main(options, args):
@@ -16,9 +15,7 @@ def main(options, args):
     ginga_toolkit.use(options.toolkit)
     from g2client import g2disp_gui
 
-    gui = g2disp_gui.GraphicalUI(options)
-
-    g2disp.main(options, args, gui)
+    g2disp_gui.main(options, args)
 
 
 
@@ -26,31 +23,20 @@ def main(options, args):
 if __name__ == '__main__':
 
     argprs = ArgumentParser(description="Gen2 observation client GUI")
+    argprs.add_argument('-d', "--config_dir", dest="config_dir",
+                        default=None, metavar="DIR",
+                        help="DIR containing configuration files")
     argprs.add_argument("-g", "--geometry", dest="geometry",
                         metavar="GEOM", default="-30-100",
                         help="X geometry for initial size and placement")
     argprs.add_argument("-t", "--toolkit", dest="toolkit", metavar="NAME",
                         default='qt5',
                         help="Choose GUI toolkit (gtk|qt)")
-    g2disp.add_options(argprs)
+    ssdlog.addlogopts(argprs)
 
     (options, args) = argprs.parse_known_args(sys.argv[1:])
 
     if len(args) != 0:
         argprs.error("incorrect number of arguments")
 
-    # Are we debugging this?
-    if options.debug:
-        import pdb
-
-        pdb.run('main(options, args)')
-
-    # Are we profiling this?
-    elif options.profile:
-        import profile
-
-        print("%s profile:" % sys.argv[0])
-        profile.run('main(options, args)')
-
-    else:
-        main(options, args)
+    main(options, args)

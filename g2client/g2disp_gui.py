@@ -6,53 +6,60 @@ Gen2 observation workstation client -- GUI version
 """
 import sys, time
 import re, os
+import glob
 import logging
 import threading
+import queue as Queue
 
 from ginga.gw import Widgets, Viewers, GwHelp
 from ginga.RGBImage import RGBImage
 from ginga.misc import Settings
 from ginga.util.paths import ginga_home
 
-from g2base.six.moves import queue as Queue
 from g2base import Bunch, ssdlog
+from g2remote.g2connect import G2Connect
 
-from g2client import g2disp, icons
+from g2client import icons
 
 
 # path to our icons
 module_path = os.path.split(icons.__file__)[0]
 
 
-class g2Disp_GUI(object):
+class g2Disp_GUI:
 
-    def __init__(self, options, obj, ev_quit):
+    def __init__(self, options, logger, ev_quit):
 
         self.options = options
-        self.obj = obj
-        # Share main object's logger
-        self.logger = obj.logger
-        self.w = Bunch.Bunch()
-
+        self.logger = logger
         self.ev_quit = ev_quit
+
+        self.g2conn = G2Connect()
+        self.w = Bunch.Bunch()
 
         # size (in lines) we will let log buffer grow to before
         # trimming
         self.logsize = 5000
 
-        # Which system we are connecting to
-        self.rohosts = options.rohosts
+        if options.config_dir is None:
+            self.cfg_dir = ginga_home
+        else:
+            self.cfg_dir = options.config_dir
+        self.read_configs()
 
-        # read our configuration file
-        conf_file = os.path.join(ginga_home, 'g2disp.cfg')
-        self.settings = Settings.SettingGroup(name='g2disp', logger=self.logger,
-                                              preffile=conf_file)
-        # this will throw an error if the configuration file is not present
-        self.settings.load()
+    def read_configs(self):
+        self.configs = dict()
+        for path in glob.glob(os.path.join(self.cfg_dir, 'sites', '*.toml')):
+            _, fname = os.path.split(path)
+            cname, _ = os.path.splitext(fname)
+            self.configs[cname] = path
 
-        self.sum = self.settings.get('summit')
-        self.sim = self.settings.get('simulator')
+        self.site_names = list(self.configs.keys())
+        if len(self.site_names) > 0:
+            conf_file = self.configs[self.site_names[0]]
+        self.g2conn.rdconfig(conf_file)
 
+    def build_gui(self):
         self.app = Widgets.Application(logger=self.logger)
         self.app.add_callback('shutdown', self.quit)
         self.top = self.app.make_window("Gen2 Display Server")
@@ -72,31 +79,14 @@ class g2Disp_GUI(object):
 
         w = filemenu.add_name("Mute", checkable=True)
         w.set_state(False)
+        # functionality is TODO
+        w.set_enabled(False)
         w.add_callback('activated', self.muteOnOff)
 
         filemenu.add_separator()
 
         quit_item = filemenu.add_name("Exit")
         quit_item.add_callback('activated', self.quit)
-
-        # create an Option pulldown menu, and add it to the menu bar
-        sysmenu = menubar.add_name('System')
-        rohosts = self.rohosts.lower().split('.')[0]
-
-        w = sysmenu.add_name("Summit", checkable=True)
-        w.set_state(rohosts == self.sum)
-        w.add_callback('activated', self.select_system, self.sum)
-        self.w.summit = w
-
-        w = sysmenu.add_name("Simulator", checkable=True)
-        w.set_state(rohosts == self.sim)
-        w.add_callback('activated', self.select_system, self.sim)
-        self.w.simulator = w
-
-        w = sysmenu.add_name("Other", checkable=True)
-        w.add_callback('activated', self.select_system, 'other')
-        w.set_state(rohosts not in [self.sim, self.sum])
-        self.w.other = w
 
         vbox.add_widget(menubar, stretch=0)
 
@@ -132,11 +122,23 @@ class g2Disp_GUI(object):
         # bottom buttons
         btnbox = Widgets.HBox()
 
-        quit = Widgets.Button("Quit")
-        quit.add_callback('activated', lambda w: self.quit())
-        btnbox.add_widget(Widgets.Label(''))
-        btnbox.add_widget(quit)
-        btnbox.add_widget(Widgets.Label(''))
+        cbox = Widgets.ComboBox()
+        for name in self.site_names:
+            cbox.append_text(name)
+        if len(self.site_names) > 0:
+            cbox.set_index(0)
+        cbox.add_callback('activated', self.select_system_cb)
+        btnbox.add_widget(cbox, stretch=0)
+
+        w = Widgets.Button('Connect')
+        w.add_callback('activated', self.connect_cb)
+        btnbox.add_widget(w, stretch=0)
+
+        w = Widgets.Button('Disconnect')
+        w.add_callback('activated', self.disconnect_cb)
+        btnbox.add_widget(w, stretch=0)
+
+        #btnbox.add_widget(Widgets.Label(''))
 
         vbox.add_widget(btnbox, stretch=0)
 
@@ -144,7 +146,6 @@ class g2Disp_GUI(object):
         self.tmr_log = GwHelp.Timer(1.0)
         self.tmr_log.add_callback('expired', self.logupdate)
         self.create_logwindow()
-        self.create_selector()
 
         self.top.set_widget(vbox)
         self.top.show()
@@ -196,25 +197,6 @@ class g2Disp_GUI(object):
         # open log window
         self.w.log.show()
 
-    def create_selector(self):
-        d = Widgets.Dialog(title='Gen2 System Selector',
-                           buttons=(("Ok", 0), ("Cancel", 1)))
-        d.add_callback('activated', self.setGen2System)
-        d.add_callback('close', lambda w: self.hide_selector())
-        self.w.selector = d
-
-        vbox = d.get_content_area()
-        w = Widgets.Label('Enter hostname of system')
-        vbox.add_widget(w, stretch=0)
-
-        w = Widgets.TextEntry()
-        vbox.add_widget(w, stretch=0)
-        self.system = w
-
-    def hide_selector(self):
-        self.w.selector.hide()
-        return True
-
     def muteOnOff(self, w, tf):
         # mute audio
         if tf:
@@ -222,45 +204,14 @@ class g2Disp_GUI(object):
         else:
             self.obj.muteOff()
 
-    def get_rohosts(self):
-        return self.rohosts
+    def select_system_cb(self, w, idx):
+        name = w.get_text()
+        conf_file = self.configs[name]
 
-    def restart_servers(self, rohosts):
-        self.obj.stop_server()
-        time.sleep(1.0)
-        self.obj.start_server(rohosts, self.options)
-
-    def _update_checkboxes(self):
-        rohosts = self.rohosts.lower().split('.')[0]
-        self.w.summit.set_state(rohosts == self.sum)
-        self.w.simulator.set_state(rohosts == self.sim)
-        self.w.other.set_state(rohosts not in [self.sim, self.sum])
-
-    def select_system(self, menu_w, state, name):
-        if not state:
-            return True
-
-        # Choose summit or simulator or other
-        if name == 'other':
-            self.w.selector.show()
-            return True
-        self.rohosts = name
-        self._update_checkboxes()
-
-        self.restart_servers(self.rohosts.split(','))
+        self.all_viewers_off()
+        self.g2conn.disconnect()
+        self.g2conn.rdconfig(conf_file)
         return True
-
-    def setGen2System(self, w, res):
-        self.w.selector.hide()
-
-        # Choose other system
-        if res == 1:
-            return True
-
-        self.rohosts = self.system.get_text()
-        self._update_checkboxes()
-
-        self.restart_servers(self.rohosts.split(','))
 
     def set_pos(self, geom):
         # TODO: currently does not seem to be honoring size request
@@ -300,31 +251,70 @@ class g2Disp_GUI(object):
                 tmr.set(1.0)
 
 
+    def connect_cb(self, w):
+        # just in case the user did something like close the viewers
+        # without disconnecting...
+        self.disconnect_cb(w)
+
+        try:
+            self.g2conn.connect()
+            self.all_viewers_on()
+
+        except Exception as e:
+            self.logger.error("error connecting: {e}",
+                              exc_info=True)
+
+    def disconnect_cb(self, w):
+        self.all_viewers_off()
+        try:
+            self.g2conn.disconnect()
+
+        except Exception as e:
+            self.logger.error("error disconnecting: {e}")
+            return
+
+    def all_viewers_on(self):
+        self.logger.info("showing screens")
+        try:
+            self.g2conn.start_all()
+
+        except Exception as e:
+            self.logger.error("error displaying screens: {e}",
+                              exc_info=True)
+
+    def all_viewers_off(self):
+        self.logger.info("All viewers OFF")
+        try:
+            self.g2conn.stop_all()
+
+        except Exception as e:
+            self.logger.error(f"error stopping screens: {e}",
+                              exc_info=True)
+
+    def mute_on(self):
+        # NOP, for now
+        pass
+
+    def mute_off(self):
+        # NOP, for now
+        pass
+
     # callback to quit the program
     def quit(self, *args):
-        self.obj.allViewersOff()
-        self.logger.debug('stopping server')
-        self.obj.stop_server()
+        self.all_viewers_off()
+        self.g2conn.disconnect()
         self.logger.debug('setting ev_quit')
         self.ev_quit.set()
         self.logger.debug('quitting app')
         self.app.quit()
         self.logger.debug('done quitting')
-        return False
 
 
-class GraphicalUI(object):
+def main(options, args):
+    ev_quit = threading.Event()
+    logger = ssdlog.make_logger('g2disp_gui', options)
 
-    def __init__(self, options):
-        self.options = options
-        self.ev_quit = threading.Event()
+    g2disp = g2Disp_GUI(options, logger, ev_quit)
+    g2disp.build_gui()
 
-    def ui(self, obj):
-        g2disp = g2Disp_GUI(self.options, obj, self.ev_quit)
-
-        g2disp.logupdate(g2disp.tmr_log)
-
-        rohosts = g2disp.get_rohosts().split(',')
-        obj.start_server(rohosts, self.options)
-
-        g2disp.app.mainloop()
+    g2disp.app.mainloop()
