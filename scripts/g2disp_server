@@ -1,0 +1,32 @@
+#! /usr/bin/env python3
+
+import sys
+from argparse import ArgumentParser
+
+from g2client import g2disp_server
+from g2base import ssdlog
+
+
+if __name__ == '__main__':
+
+    argprs = ArgumentParser(description="Gen2 observation display server")
+    argprs.add_argument('-d', "--config_dir", dest="config_dir",
+                        default=g2disp_server.default_cfgdir, metavar="DIR",
+                        help="DIR containing configuration files")
+    argprs.add_argument("--host", dest="host",
+                        default=g2disp_server.default_host, metavar="HOST",
+                        help="Bind to HOST")
+    argprs.add_argument("--port", dest="port", type=int,
+                        default=g2disp_server.default_port, metavar="PORT",
+                        help="Use PORT for our server")
+    argprs.add_argument("--rohosts", dest="rohosts", default='localhost',
+                        metavar="HOSTLIST",
+                        help="Hosts to use for remote objects connection")
+    ssdlog.addlogopts(argprs)
+
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
+
+    if len(args) != 0:
+        argprs.error("incorrect number of arguments")
+
+    g2disp_server.main(options, args)
