@@ -57,7 +57,9 @@ class g2Disp_GUI:
         self.site_names = list(self.configs.keys())
         if len(self.site_names) > 0:
             conf_file = self.configs[self.site_names[0]]
-        self.g2conn.rdconfig(conf_file)
+            self.g2conn.rdconfig(conf_file)
+        else:
+            self.logger.error("No configs found!")
 
     def build_gui(self):
         self.app = Widgets.Application(logger=self.logger)
