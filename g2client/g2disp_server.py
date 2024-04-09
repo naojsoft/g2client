@@ -47,6 +47,7 @@ class g2Disp_Server:
         """Read/Update the configurations."""
         self.disconnect()
 
+        order = []
         self.configs = dict()
         for path in glob.glob(os.path.join(self.cfg_dir, '*.toml')):
             _, fname = os.path.split(path)
@@ -54,9 +55,12 @@ class g2Disp_Server:
             name = self.g2conn.rdconfig(path)
             if name is None:
                 name = cname
+            rank = self.g2conn.config.get('rank', 100)
             self.configs[name] = path
+            order.append((rank, name))
 
-        self.site_names = list(self.configs.keys())
+        order.sort(key=lambda tup: tup[0])
+        self.site_names = [tup[1] for tup in order]
         if len(self.site_names) == 0:
             self.logger.error("No configs found!")
 
