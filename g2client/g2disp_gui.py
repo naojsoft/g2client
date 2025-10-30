@@ -14,7 +14,7 @@ from ginga.RGBImage import RGBImage
 from ginga.misc import Settings
 from ginga.util.paths import ginga_home
 
-from g2base.six.moves import queue as Queue
+import queue as Queue
 from g2base import Bunch, ssdlog
 
 from g2client import g2disp, icons
