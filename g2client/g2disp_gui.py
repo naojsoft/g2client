@@ -302,10 +302,15 @@ class g2Disp_GUI(object):
 
     # callback to quit the program
     def quit(self, *args):
+        # guard against re-entrancy: quit() is wired to several triggers
+        # (Exit menu, Quit button, window-close, and the app 'shutdown'
+        # callback), so make sure the shutdown/cleanup runs only once
+        if getattr(self, '_quitting', False):
+            return False
+        self._quitting = True
         self.obj.allViewersOff()
         self.logger.debug('stopping server')
         self.obj.stop_server()
-        self.logger.debug('setting ev_quit')
         self.ev_quit.set()
         self.logger.debug('quitting app')
         self.app.quit()
