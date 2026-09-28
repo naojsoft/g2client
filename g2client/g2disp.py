@@ -7,6 +7,7 @@ Gen2 observation workstation client -- command line version
 import sys, time, os
 import threading
 import binascii
+from argparse import ArgumentTypeError
 
 from g2base import ssdlog, myproc
 from g2base.remoteObjects import remoteObjects as ro
@@ -17,6 +18,25 @@ from g2client import soundsink
 # Default ports
 default_svc_port = 19051
 default_mon_port = 19052
+
+
+def one_transport(value):
+    """Check --transport names a single protocol this installation knows.
+
+    An argparse type rather than a check further in, so that a typo is
+    refused before a window is built or a port is bound, and reported the
+    way any other bad option is.
+    """
+    if ',' in value:
+        raise ArgumentTypeError(
+            "'%s' names more than one protocol; this program answers one "
+            "way at a time, so that --port and --monport are the ports it "
+            "actually listens on" % (value,))
+    try:
+        ro.ro_transport.get(value)
+    except Exception as e:
+        raise ArgumentTypeError(str(e))
+    return value
 
 
 # TODO: put this in a utilities module
@@ -65,6 +85,7 @@ class g2Disp(object):
         monname = '%s.mon' % self.basename
         mymon = Monitor.Monitor(monname, self.logger,
                                 numthreads=options.numthreads,
+                                minthreads=options.minthreads,
                                 ev_quit=self.ev_quit)
         self.monitor = mymon
 
@@ -83,8 +104,11 @@ class g2Disp(object):
 
         # Startup monitor threadpool
         mymon.start(wait=True)
-        mymon.start_server(wait=True, port=options.monport)
+        mymon.start_server(wait=True, port=options.monport,
+                           transport=options.transport)
         self.mon_server_started = True
+        self.logger.info("monitor server on port %d speaking %s" % (
+            options.monport, options.transport))
 
         self.threadPool = self.monitor.get_threadPool()
 
@@ -95,15 +119,25 @@ class g2Disp(object):
         #mymon.subscribe(options.monitor, channels, ())
         mymon.publish_to(options.monitor, ['sound'], {})
 
+        # One protocol, not several.  A server that answered two ways would
+        # need two ports, and only the first could keep the one it was asked
+        # for -- the second takes whatever it finds free, which is no use on
+        # a machine reached through a firewall that was told about --port and
+        # --monport and nothing else.  So which way it answers is chosen
+        # instead: 'xmlrpc' where Gen2 has not been upgraded, the default
+        # otherwise.
         self.svc = ro.remoteObjectServer(svcname=self.basename,
                                          obj=self, logger=self.logger,
                                          port=options.port,
                                          ev_quit=self.ev_quit,
                                          threadPool=self.threadPool,
+                                         transport=options.transport,
                                          #auth=None,
                                          usethread=True)
         self.svc.ro_start(wait=True)
         self.ro_server_started = True
+        self.logger.info("%s on port %d speaking %s" % (
+            self.basename, options.port, options.transport))
 
     def stop_server(self):
         self.logger.info("%s exiting..." % self.basename)
@@ -211,6 +245,16 @@ def add_options(argprs):
     argprs.add_argument("--monport", dest="monport", type=int,
                         default=default_mon_port, metavar="PORT",
                         help="Use PORT for our monitor")
+    argprs.add_argument("--minthreads", dest="minthreads", type=int,
+                        default=12, metavar="NUM",
+                        help="Keep at least NUM threads in the thread pool. "
+                        "Not an allocation: the pool grows to --numthreads on "
+                        "demand and retires workers that go idle.  Eight of "
+                        "these workers never come back -- four pubsub "
+                        "delivery daemons, the remote-subscriptions loop, and "
+                        "a command loop and serve loop for each of our two "
+                        "servers -- so a floor at that number would leave "
+                        "none ready to answer a call")
     argprs.add_argument("--numthreads", dest="numthreads", type=int,
                         default=50, metavar="NUM",
                         help="Use NUM threads in thread pool")
@@ -223,6 +267,14 @@ def add_options(argprs):
     argprs.add_argument("--rohosts", dest="rohosts", default='localhost',
                         metavar="HOSTLIST",
                         help="Hosts to use for remote objects connection")
+    argprs.add_argument("--transport", dest="transport", metavar="NAME",
+                        type=one_transport, default=ro.default_transport,
+                        help="Answer this protocol, on both our ports.  One "
+                        "name, not a list: answering two ways would leave the "
+                        "second listener on whatever port was free, which a "
+                        "firewall in front of this host will not have been "
+                        "told about.  Use 'xmlrpc' where the Gen2 calling us "
+                        "has not been upgraded [default: %(default)s]")
     ssdlog.addlogopts(argprs)
 
 

@@ -34,6 +34,14 @@ if __name__ == '__main__':
     argprs.add_argument("--monport", dest="monport", type=int,
                         default=default_mon_port, metavar="PORT",
                         help="Use PORT for our monitor")
+    argprs.add_argument("--minthreads", dest="minthreads", type=int,
+                        default=12, metavar="NUM",
+                        help="Keep at least NUM threads in our thread pool. "
+                        "Nine of them never come back -- four pubsub delivery "
+                        "daemons, the remote-subscriptions loop, and a command "
+                        "loop and serve loop for each of our two servers -- so "
+                        "a floor at that number would leave none ready to "
+                        "answer a call")
     argprs.add_argument("--numthreads", dest="numthreads", type=int,
                         default=50, metavar="NUM",
                         help="Use NUM threads in our thread pool")

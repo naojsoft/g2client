@@ -396,11 +396,19 @@ def main(options, args):
 
     ev_quit = threading.Event()
 
+    # Our own pool, rather than letting the monitor make one: the monitor,
+    # its server and this program's own service all run out of it, so the
+    # size and the floor are a property of the program rather than of the
+    # monitor that happens to be constructed first.  Ours to start, too --
+    # a pubsub only starts a pool it created itself.
+    threadPool = Task.ThreadPool(numthreads=options.numthreads,
+                                 minthreads=options.minthreads,
+                                 logger=logger, ev_quit=ev_quit)
+
     # Create a local pub sub instance
     monname = '%s.mon' % basename
-    minimon = Monitor.Monitor(monname, logger, numthreads=options.numthreads)
-
-    threadPool = minimon.get_threadPool()
+    minimon = Monitor.Monitor(monname, logger, threadPool=threadPool,
+                              ev_quit=ev_quit)
 
     queue = Queue.Queue()
 
@@ -425,7 +433,10 @@ def main(options, args):
     mon_server_started = False
     ro_server_started = False
     try:
-        # Startup monitor threadpool
+        # Ours to start, since we made it; minimon.start() would have started
+        # a pool it created, and will not start one it was handed.
+        threadPool.startall(wait=True)
+
         minimon.start(wait=True)
         minimon.start_server(wait=True, port=options.monport)
         mon_server_started = True
@@ -459,5 +470,7 @@ def main(options, args):
         if ro_server_started:
             svc.ro_stop(wait=True)
         minimon.stop(wait=True)
+        # Ours to stop as well: minimon.stop() only stops a pool it created.
+        threadPool.stopall(wait=True)
 
     logger.info("%s exiting..." % basename)
