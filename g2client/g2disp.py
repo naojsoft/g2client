@@ -4,7 +4,8 @@
 """
 Gen2 observation workstation client -- command line version
 """
-import sys, time, os
+import sys
+import os
 import threading
 import binascii
 from argparse import ArgumentTypeError
@@ -49,7 +50,7 @@ def error(msg, exitcode=0):
         sys.exit(exitcode)
 
 
-class g2Disp(object):
+class g2Disp:
 
     def __init__(self, **kwdargs):
         self.__dict__.update(kwdargs)
@@ -170,7 +171,8 @@ class g2Disp(object):
         key = localdisp + localgeom
         try:
             self.procs[key].killpg()
-        except Exception as e:
+        except Exception:
+            # nothing was running under this key, which is the normal case
             pass
         try:
             self.procs[key] = myproc.myproc(cmdstr, usepg=True)
@@ -209,7 +211,7 @@ class g2Disp(object):
         return 0
 
 
-class CmdLineUI(object):
+class CmdLineUI:
     def __init__(self, options):
         self.options = options
         self.ev_quit = threading.Event()

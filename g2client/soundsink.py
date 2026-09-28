@@ -1,11 +1,11 @@
 """
 The Gen2 distributed sound system (SoundSink/SoundSource).
 """
-import sys, os
+import sys
+import os
 import time
 import threading
 import hashlib
-import tempfile
 import queue as Queue
 
 from g2base.remoteObjects import remoteObjects as ro
@@ -31,7 +31,7 @@ def error(msg, exitcode=0):
         sys.exit(exitcode)
 
 
-class SoundBase(object):
+class SoundBase:
 
     def __init__(self, **kwdargs):
         self.__dict__.update(kwdargs)
@@ -75,7 +75,7 @@ class SoundBase(object):
 class SoundSource(SoundBase):
 
     def __init__(self, **kwdargs):
-        super(SoundSource, self).__init__(**kwdargs)
+        super().__init__(**kwdargs)
 
         self.tag = 'mon.sound.sound0'
 
@@ -200,7 +200,7 @@ class SoundSource(SoundBase):
 class SoundSink(SoundBase):
 
     def __init__(self, **kwdargs):
-        super(SoundSink, self).__init__(**kwdargs)
+        super().__init__(**kwdargs)
 
         self.sound_dev = kwdargs.get('sound_dev', default_sound_dev)
         self.playcmd = "paplay"
@@ -291,7 +291,7 @@ class SoundSink(SoundBase):
                 cmd_str = "%s %s" % (
                     self.playcmd, tmppath)
                 self.logger.info("Play command is: %s" % cmd_str)
-                res = os.system(cmd_str)
+                os.system(cmd_str)
                 #os.remove(tmppath)
 
             except (IOError, OSError) as e:
@@ -356,7 +356,7 @@ class SoundSink(SoundBase):
         try:
             bnch = Monitor.unpack_payload(payload)
 
-        except Monitor.MonitorError:
+        except Monitor.MonitorError as e:
             self.logger.error("malformed packet '%s': %s" % (
                 str(payload), str(e)))
             return

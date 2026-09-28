@@ -4,8 +4,9 @@
 """
 Gen2 observation workstation client -- GUI version
 """
-import sys, time
-import re, os
+import time
+import re
+import os
 import logging
 import threading
 
@@ -17,14 +18,14 @@ from ginga.util.paths import ginga_home
 import queue as Queue
 from g2base import Bunch, ssdlog
 
-from g2client import g2disp, icons
+from g2client import icons
 
 
 # path to our icons
 module_path = os.path.split(icons.__file__)[0]
 
 
-class g2Disp_GUI(object):
+class g2Disp_GUI:
 
     def __init__(self, options, obj, ev_quit):
 
@@ -318,18 +319,20 @@ class g2Disp_GUI(object):
         return False
 
 
-class GraphicalUI(object):
+class GraphicalUI:
 
     def __init__(self, options):
         self.options = options
         self.ev_quit = threading.Event()
 
     def ui(self, obj):
-        g2disp = g2Disp_GUI(self.options, obj, self.ev_quit)
+        # not `g2disp`: that is the module this one imports, and shadowing it
+        # here means a later line referring to the module gets the window
+        gui = g2Disp_GUI(self.options, obj, self.ev_quit)
 
-        g2disp.logupdate(g2disp.tmr_log)
+        gui.logupdate(gui.tmr_log)
 
-        rohosts = g2disp.get_rohosts().split(',')
+        rohosts = gui.get_rohosts().split(',')
         obj.start_server(rohosts, self.options)
 
-        g2disp.app.mainloop()
+        gui.app.mainloop()

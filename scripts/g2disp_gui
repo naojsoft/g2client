@@ -10,7 +10,9 @@ from g2client import g2disp
 
 def main(options, args):
     if options.toolkit is None:
-        logger.error("Please choose a GUI toolkit with -t option")
+        # No logger exists this early, and carrying on would hand None to
+        # ginga_toolkit.use() -- so say so and stop.
+        sys.exit("Please choose a GUI toolkit with the -t option")
 
     # decide our toolkit, then import
     ginga_toolkit.use(options.toolkit)
